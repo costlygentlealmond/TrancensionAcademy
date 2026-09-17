@@ -1,10 +1,12 @@
 // ============================================================
 // TRANCENSION ACADEMY — Logika Game (app.js)
-// [v3] FIX: Boss Quest terbuka langsung tanpa refresh
-// [v3] BARU: Popup Fun Fact setelah kuis dijawab benar
+// [v4] Kuis slide-by-slide interaktif:
+//      salah -> clue scaffolding (jawaban tidak dibocorkan)
+//      benar -> explanation debrief -> slide berikutnya
+//      slide terakhir -> Fun Fact popup -> completeQuest()
 // ============================================================
 
-// --- KONFIGURASI BALANCING ---
+// --- KONFIGURASI ---
 const XP_GROWTH = 1.2;
 const INITIAL_XP = 30;
 const SAVE_KEY = 'trancension_save_v1';
@@ -26,6 +28,13 @@ let activeQuestData = {
     questId: null
 };
 
+// [BARU] State untuk mesin slide
+let slideState = {
+    slides: [],       // array pertanyaan dari quizData
+    currentSlide: 0,  // indeks slide aktif
+    isAnswered: false // apakah slide aktif sudah dijawab benar
+};
+
 // --- DOM ELEMENTS ---
 const xpBar = document.getElementById('xpBar');
 const xpText = document.getElementById('xpText');
@@ -37,21 +46,28 @@ const closeModalBtn = document.getElementById('closeModalBtn');
 
 const quizModal = document.getElementById('quizModal');
 const quizTitle = document.getElementById('quizTitle');
-const quizContent = document.getElementById('quizContent');
-const quizForm = document.getElementById('quizForm');
-const submitQuizBtn = document.getElementById('submitQuizBtn');
 const closeQuizBtn = document.getElementById('closeQuizBtn');
-const quizError = document.getElementById('quizError');
 
-const resetProgressBtn = document.getElementById('resetProgressBtn');
+// [BARU] DOM Elements Slide Engine
+const slideCounter = document.getElementById('slideCounter');
+const slideProgressBar = document.getElementById('slideProgressBar');
+const slideQuestion = document.getElementById('slideQuestion');
+const slideOptions = document.getElementById('slideOptions');
+const clueBox = document.getElementById('clueBox');
+const clueText = document.getElementById('clueText');
+const explanationBox = document.getElementById('explanationBox');
+const explanationText = document.getElementById('explanationText');
+const nextSlideBtn = document.getElementById('nextSlideBtn');
 
-// [BARU] DOM Elements untuk Fun Fact
+// Fun Fact
 const funFactModal = document.getElementById('funFactModal');
 const funFactText = document.getElementById('funFactText');
 const funFactContinueBtn = document.getElementById('funFactContinueBtn');
 
+const resetProgressBtn = document.getElementById('resetProgressBtn');
+
 // ============================================================
-// SAVE SYSTEM
+// SAVE SYSTEM (tidak berubah)
 // ============================================================
 
 function saveGame() {
@@ -113,7 +129,7 @@ function resetGame() {
 }
 
 // ============================================================
-// FUNGSI UTAMA
+// FUNGSI INTI GAME (tidak berubah — termasuk fix urutan Boss)
 // ============================================================
 
 function updateUI() {
@@ -187,22 +203,13 @@ function checkQuestsAvailability() {
     });
 }
 
-// ============================================================
-// [FIX BUG] completeQuest — URUTAN DIPERBAIKI!
-// Urutan lama: addXP() -> unlockSkill()
-//   => checkQuestsAvailability() jalan SEBELUM skill terdaftar,
-//      jadi Boss Quest tidak kunjung terbuka sampai refresh.
-// Urutan baru: state dulu (skill + kartu selesai), BARU addXP()
-//   (yang memicu pengecekan quest), terakhir simpan.
-// ============================================================
 function completeQuest() {
     const { questCard, xpToAdd, skillToUnlock, questId } = activeQuestData;
 
-    // --- FASE 1: Perbarui semua STATE terlebih dahulu ---
+    // FASE 1: state dulu
     if (skillToUnlock) unlockSkill(skillToUnlock);
     completedQuests.add(questId);
 
-    // Tandai kartu quest sebagai selesai (sebelum pengecekan berjalan)
     questCard.classList.add('opacity-30');
     const button = questCard.querySelector('.complete-btn');
     if (button) {
@@ -212,63 +219,113 @@ function completeQuest() {
         button.classList.add('bg-gray-500');
     }
 
-    // --- FASE 2: Baru picu updateUI -> checkQuestsAvailability ---
-    // Sekarang skill-nya SUDAH terdaftar, jadi Boss langsung terbuka!
+    // FASE 2: baru picu pengecekan quest (Boss terbuka tanpa refresh)
     addXP(xpToAdd);
 
-    // --- FASE 3: Simpan progres ---
+    // FASE 3: simpan
     saveGame();
 }
 
 // ============================================================
-// [BARU] FUN FACT POPUP (ala Duolingo)
+// [BARU] SLIDE ENGINE
 // ============================================================
-
-function showFunFact() {
-    const quiz = quizData[activeQuestData.questId];
-
-    // Kumpulkan semua funFact dari pertanyaan kuis ini, pilih acak
-    const facts = (quiz.questions || []).map(q => q.funFact).filter(Boolean);
-
-    if (facts.length > 0) {
-        funFactText.textContent = facts[Math.floor(Math.random() * facts.length)];
-    } else {
-        // Fallback jika suatu saat ada kuis tanpa funFact
-        funFactText.textContent = 'Kerja bagus! Kamu menyelesaikan quest ini dengan sempurna.';
-    }
-
-    // Tutup kuis, mainkan popup fun fact
-    quizModal.classList.add('hidden');
-    funFactModal.classList.remove('hidden');
-}
 
 function loadQuiz(questId) {
     const quiz = quizData[questId];
-    if (!quiz) {
+    if (!quiz || !quiz.questions || quiz.questions.length === 0) {
         console.error('Data kuis tidak ditemukan untuk quest:', questId);
         return;
     }
 
     quizTitle.textContent = quiz.title;
+    slideState = { slides: quiz.questions, currentSlide: 0, isAnswered: false };
 
-    let quizHTML = '';
-    quiz.questions.forEach((q, index) => {
-        quizHTML += `<fieldset class="space-y-2">`;
-        quizHTML += `<legend class="font-semibold text-lg">${index + 1}. ${q.q}</legend>`;
-        for (const [key, value] of Object.entries(q.options)) {
-            quizHTML += `
-                <div class="flex items-center">
-                    <input id="q${index}_${key}" name="q${index}_answer" type="radio" value="${key}" class="h-4 w-4 text-cyan-600 border-gray-300 focus:ring-cyan-500">
-                    <label for="q${index}_${key}" class="ml-3 block text-sm font-medium text-gray-300">${value}</label>
-                </div>
-            `;
-        }
-        quizHTML += `</fieldset>`;
-    });
-
-    quizContent.innerHTML = quizHTML;
-    quizError.classList.add('hidden');
+    renderSlide();
     quizModal.classList.remove('hidden');
+}
+
+function renderSlide() {
+    const slide = slideState.slides[slideState.currentSlide];
+    const total = slideState.slides.length;
+
+    // [FIX] Setiap slide yang baru dirender SELALU dimulai dalam kondisi
+    // "belum dijawab". Tanpa reset ini, isAnswered masih true dari
+    // slide sebelumnya -> semua tombol opsi di slide berikutnya mati.
+    slideState.isAnswered = false;
+
+    // Header: counter & progress
+    slideCounter.textContent = `Slide ${slideState.currentSlide + 1} / ${total}`;
+    slideProgressBar.style.width = `${(slideState.currentSlide / total) * 100}%`;
+
+    slideQuestion.textContent = `${slideState.currentSlide + 1}. ${slide.question}`;
+
+    // Reset kotak feedback
+    clueBox.classList.add('hidden');
+    explanationBox.classList.add('hidden');
+    nextSlideBtn.classList.add('hidden');
+
+    // Bangun tombol opsi A-D
+    let optionsHTML = '';
+    for (const [letter, text] of Object.entries(slide.options)) {
+        optionsHTML += `
+            <button type="button" data-letter="${letter}"
+                class="option-btn w-full text-left bg-gray-700 hover:bg-gray-600 border-2 border-transparent rounded-lg px-4 py-3 transition duration-150">
+                <span class="font-bold text-cyan-400 mr-2">${letter}.</span>${text}
+            </button>`;
+    }
+    slideOptions.innerHTML = optionsHTML;
+}
+function handleOptionClick(button) {
+    // Slide terkunci setelah dijawab benar
+    if (slideState.isAnswered || button.disabled) return;
+
+    const slide = slideState.slides[slideState.currentSlide];
+    const letter = button.dataset.letter;
+
+    if (letter === slide.correct_answer) {
+        // --- BENAR: debrief explanation ---
+        slideState.isAnswered = true;
+        button.classList.add('option-correct');
+
+        // Kunci semua opsi
+        slideOptions.querySelectorAll('.option-btn').forEach(b => b.disabled = true);
+
+        explanationText.textContent = slide.explanation;
+        explanationBox.classList.remove('hidden');
+
+        // Progress naik ke posisi slide berikutnya (terasa "melangkah")
+        const total = slideState.slides.length;
+        slideProgressBar.style.width = `${((slideState.currentSlide + 1) / total) * 100}%`;
+
+        const isLastSlide = slideState.currentSlide === total - 1;
+        nextSlideBtn.textContent = isLastSlide ? '🎉 Selesai & Lihat Hasil' : 'Slide Berikutnya ➜';
+        nextSlideBtn.classList.remove('hidden');
+
+    } else {
+        // --- SALAH: clue scaffolding, jawaban TIDAK dibocorkan ---
+        button.classList.add('option-wrong', 'shake');
+        button.disabled = true; // opsi salah dieliminasi, sisanya masih bisa diklik
+
+        clueText.textContent = slide.clue;
+        clueBox.classList.remove('hidden');
+    }
+}
+
+// ============================================================
+// FUN FACT POPUP (tidak berubah)
+// ============================================================
+
+function showFunFact() {
+    const quiz = quizData[activeQuestData.questId];
+    const facts = (quiz.questions || []).map(q => q.funFact).filter(Boolean);
+
+    if (facts.length > 0) {
+        funFactText.textContent = facts[Math.floor(Math.random() * facts.length)];
+    } else {
+        funFactText.textContent = 'Kerja bagus! Kamu menyelesaikan quest ini dengan sempurna.';
+    }
+
+    funFactModal.classList.remove('hidden');
 }
 
 // --- EVENT LISTENERS ---
@@ -292,40 +349,38 @@ questList.addEventListener('click', function (e) {
     }
 });
 
-closeModalBtn.addEventListener('click', function () {
-    levelUpModal.classList.add('hidden');
+// [BARU] Klik opsi jawaban (event delegation)
+slideOptions.addEventListener('click', function (e) {
+    const button = e.target.closest('.option-btn');
+    if (!button) return;
+    handleOptionClick(button);
 });
 
-quizForm.addEventListener('submit', function (e) {
-    e.preventDefault();
+// [BARU] Tombol slide berikutnya / selesai
+nextSlideBtn.addEventListener('click', function () {
+    if (!slideState.isAnswered) return; // pengaman
 
-    const quiz = quizData[activeQuestData.questId];
-    let allCorrect = true;
-
-    quiz.questions.forEach((q, index) => {
-        const selectedAnswer = quizForm.querySelector(`input[name="q${index}_answer"]:checked`);
-        if (!selectedAnswer || selectedAnswer.value !== q.answer) {
-            allCorrect = false;
-        }
-    });
-
-    if (allCorrect) {
-        // [DIUBAH] Jangan langsung selesaikan — tampilkan Fun Fact dulu!
-        // completeQuest() baru dipanggil saat user klik "Lanjutkan".
-        showFunFact();
+    if (slideState.currentSlide < slideState.slides.length - 1) {
+        slideState.currentSlide++;
+        renderSlide();
     } else {
-        quizError.classList.remove('hidden');
+        // Slide terakhir selesai -> tutup kuis, tampilkan Fun Fact
+        quizModal.classList.add('hidden');
+        showFunFact();
     }
+});
+
+closeModalBtn.addEventListener('click', function () {
+    levelUpModal.classList.add('hidden');
 });
 
 closeQuizBtn.addEventListener('click', function () {
     quizModal.classList.add('hidden');
 });
 
-// [BARU] Tombol "Lanjutkan" di Fun Fact -> baru quest benar-benar selesai
 funFactContinueBtn.addEventListener('click', function () {
     funFactModal.classList.add('hidden');
-    completeQuest(); // XP masuk, skill terbuka, Boss dicek di sini
+    completeQuest(); // XP, skill, pengecekan Boss
 });
 
 if (resetProgressBtn) {
