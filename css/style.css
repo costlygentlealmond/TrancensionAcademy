@@ -38,3 +38,26 @@ body {
     100% { transform: scale(1); opacity: 1; }
 }
 .pop-in { animation: popIn 0.35s ease-out; }
+/* [BARU] Opsi jawaban kuis slide */
+.option-btn:disabled { cursor: not-allowed; }
+
+.option-correct {
+    background-color: #065F46 !important; /* hijau tua */
+    border-color: #34D399 !important;
+}
+
+.option-wrong {
+    background-color: #7F1D1D !important; /* merah tua */
+    border-color: #F87171 !important;
+    opacity: 0.7;
+}
+
+/* Animasi getar saat salah */
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-6px); }
+    40% { transform: translateX(6px); }
+    60% { transform: translateX(-4px); }
+    80% { transform: translateX(4px); }
+}
+.shake { animation: shake 0.4s ease; }
