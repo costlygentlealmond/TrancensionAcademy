@@ -1,54 +1,63 @@
 // ============================================================
 // TRANCENSION ACADEMY — Logika Game (app.js)
-// [v4] Kuis slide-by-slide interaktif:
-//      salah -> clue scaffolding (jawaban tidak dibocorkan)
-//      benar -> explanation debrief -> slide berikutnya
-//      slide terakhir -> Fun Fact popup -> completeQuest()
+// [v5] World System: 4 konsentrasi + path belajar ala Duolingo
+//      - Skill Tree & quest cards DIHAPUS
+//      - Node unlock BERURUTAN (pengganti level/skill requirement)
+//      - Fix lama dipertahankan: isAnswered reset, render setelah
+//        quest selesai, save/load localStorage
 // ============================================================
 
 // --- KONFIGURASI ---
 const XP_GROWTH = 1.2;
 const INITIAL_XP = 30;
-const SAVE_KEY = 'trancension_save_v1';
+const SAVE_KEY = 'trancension_save_v1';   // field baru pakai default -> save lama kompatibel
+const GEMS_PER_QUEST = 10;
+const PATH_OFFSETS = [-60, 0, 60, 0];     // pola zig-zag node path
 
 // --- GAME STATE ---
 let currentUser = {
     level: 1,
     xp: 0,
-    xpToNextLevel: 100
+    xpToNextLevel: 100,
+    gems: 0,
+    streak: 0,
+    lastQuestDate: null,        // tanggal string terakhir menyelesaikan quest
+    activeWorld: 'marketing'    // dunia/konsentrasi aktif
 };
 
-const unlockedSkills = new Set();
-const completedQuests = new Set();
+const completedQuests = new Set(); // ID quest selesai (global, ID unik antar dunia)
 
-let activeQuestData = {
-    questCard: null,
-    xpToAdd: 0,
-    skillToUnlock: null,
-    questId: null
-};
+let activeQuestData = { questId: null, xpToAdd: 0 };
 
-// [BARU] State untuk mesin slide
-let slideState = {
-    slides: [],       // array pertanyaan dari quizData
-    currentSlide: 0,  // indeks slide aktif
-    isAnswered: false // apakah slide aktif sudah dijawab benar
-};
+// State mesin slide
+let slideState = { slides: [], currentSlide: 0, isAnswered: false };
 
 // --- DOM ELEMENTS ---
 const xpBar = document.getElementById('xpBar');
 const xpText = document.getElementById('xpText');
 const levelText = document.getElementById('levelText');
-const questList = document.getElementById('questList');
 const levelUpModal = document.getElementById('levelUpModal');
 const newLevelText = document.getElementById('newLevelText');
 const closeModalBtn = document.getElementById('closeModalBtn');
 
+// Top bar
+const worldSwitcherBtn = document.getElementById('worldSwitcherBtn');
+const worldDropdown = document.getElementById('worldDropdown');
+const worldSwitcherFlag = document.getElementById('worldSwitcherFlag');
+const currentWorldName = document.getElementById('currentWorldName');
+const streakText = document.getElementById('streakText');
+const gemsText = document.getElementById('gemsText');
+const topLevelText = document.getElementById('topLevelText');
+const resetProgressBtn = document.getElementById('resetProgressBtn');
+
+// Path Duolingo
+const pathContainer = document.getElementById('pathContainer');
+const pathWorldName = document.getElementById('pathWorldName');
+
+// Kuis (slide engine)
 const quizModal = document.getElementById('quizModal');
 const quizTitle = document.getElementById('quizTitle');
 const closeQuizBtn = document.getElementById('closeQuizBtn');
-
-// [BARU] DOM Elements Slide Engine
 const slideCounter = document.getElementById('slideCounter');
 const slideProgressBar = document.getElementById('slideProgressBar');
 const slideQuestion = document.getElementById('slideQuestion');
@@ -64,10 +73,8 @@ const funFactModal = document.getElementById('funFactModal');
 const funFactText = document.getElementById('funFactText');
 const funFactContinueBtn = document.getElementById('funFactContinueBtn');
 
-const resetProgressBtn = document.getElementById('resetProgressBtn');
-
 // ============================================================
-// SAVE SYSTEM (tidak berubah)
+// SAVE SYSTEM (diperluas — tetap kompatibel dengan save lama)
 // ============================================================
 
 function saveGame() {
@@ -75,8 +82,11 @@ function saveGame() {
         level: currentUser.level,
         xp: currentUser.xp,
         xpToNextLevel: currentUser.xpToNextLevel,
-        skills: Array.from(unlockedSkills),
-        quests: Array.from(completedQuests)
+        quests: Array.from(completedQuests),
+        gems: currentUser.gems,
+        streak: currentUser.streak,
+        lastQuestDate: currentUser.lastQuestDate,
+        activeWorld: currentUser.activeWorld
     };
     localStorage.setItem(SAVE_KEY, JSON.stringify(saveData));
 }
@@ -86,12 +96,16 @@ function loadGame() {
     if (!raw) return false;
 
     try {
-        const saveData = JSON.parse(raw);
-        currentUser.level = saveData.level || 1;
-        currentUser.xp = saveData.xp || 0;
-        currentUser.xpToNextLevel = saveData.xpToNextLevel || 100;
-        (saveData.skills || []).forEach(id => unlockedSkills.add(id));
-        (saveData.quests || []).forEach(id => completedQuests.add(id));
+        const s = JSON.parse(raw);
+        currentUser.level = s.level || 1;
+        currentUser.xp = s.xp || 0;
+        currentUser.xpToNextLevel = s.xpToNextLevel || 100;
+        (s.quests || []).forEach(id => completedQuests.add(id));
+        // [BARU] field world-system, pakai default jika save lama
+        currentUser.gems = s.gems || 0;
+        currentUser.streak = s.streak || 0;
+        currentUser.lastQuestDate = s.lastQuestDate || null;
+        currentUser.activeWorld = s.activeWorld || 'marketing';
         return true;
     } catch (e) {
         console.error('Save data rusak, dihapus:', e);
@@ -100,27 +114,10 @@ function loadGame() {
     }
 }
 
-function applySavedState() {
-    completedQuests.forEach(questId => {
-        const questCard = questList.querySelector(`[data-quest-id="${questId}"]`);
-        if (questCard) {
-            questCard.classList.add('opacity-30');
-            const button = questCard.querySelector('.complete-btn');
-            if (button) {
-                button.disabled = true;
-                button.textContent = 'Selesai';
-                button.classList.remove('bg-cyan-500', 'hover:bg-cyan-600');
-                button.classList.add('bg-gray-500', 'cursor-not-allowed');
-            }
-        }
-    });
-    unlockedSkills.forEach(id => unlockSkill(id));
-}
-
 function resetGame() {
     const konfirmasi = confirm(
         'Yakin ingin menghapus SEMUA progres?\n' +
-        'Level, XP, skill, dan quest selesai akan hilang permanen.'
+        'Level, XP, gem, streak, dan quest selesai akan hilang permanen.'
     );
     if (konfirmasi) {
         localStorage.removeItem(SAVE_KEY);
@@ -129,7 +126,123 @@ function resetGame() {
 }
 
 // ============================================================
-// FUNGSI INTI GAME (tidak berubah — termasuk fix urutan Boss)
+// WORLD SYSTEM
+// ============================================================
+
+function getConcentration(id) {
+    return CONCENTRATIONS.find(c => c.id === id) || CONCENTRATIONS[0];
+}
+
+function getFlatQuests(conc) {
+    return conc.units.flatMap(u => u.quests);
+}
+
+/**
+ * Status sebuah node: 'done' | 'current' | 'locked'
+ * Aturan Duolingo: node pertama selalu terbuka; node berikutnya
+ * terbuka setelah node SEBELUMNYA selesai (unlock berurutan).
+ */
+function getQuestState(qid, flatQuests) {
+    if (completedQuests.has(qid)) return 'done';
+    const idx = flatQuests.indexOf(qid);
+    if (idx <= 0) return 'current';
+    return completedQuests.has(flatQuests[idx - 1]) ? 'current' : 'locked';
+}
+
+function markActiveWorldOption() {
+    worldDropdown.querySelectorAll('[data-world]').forEach(b => {
+        b.classList.toggle('active-world', b.dataset.world === currentUser.activeWorld);
+    });
+}
+
+function renderPath() {
+    const conc = getConcentration(currentUser.activeWorld);
+    const flat = getFlatQuests(conc);
+
+    // Terapkan tema & label dunia
+    document.body.dataset.theme = conc.theme;
+    currentWorldName.textContent = conc.name;
+    worldSwitcherFlag.textContent = conc.flag;
+    pathWorldName.textContent = conc.name;
+    markActiveWorldOption();
+
+    let html = '';
+    let nodeIndex = 0;
+
+    conc.units.forEach(unit => {
+        // Banner unit ala Duolingo (warna mengikuti tema dunia)
+        html += `
+            <div class="unit-banner rounded-xl p-4 md:p-5 mb-2 shadow-lg">
+                <div class="flex items-center justify-between gap-3">
+                    <div>
+                        <h3 class="text-xl font-extrabold">${unit.title}</h3>
+                        <p class="text-sm opacity-90">${unit.subtitle}</p>
+                    </div>
+                    <span class="text-3xl" aria-hidden="true">📘</span>
+                </div>
+            </div>`;
+
+        html += '<div class="path-wrap">';
+
+        unit.quests.forEach(qid => {
+            const state = getQuestState(qid, flat);
+            const quiz = quizData[qid];
+            const offset = PATH_OFFSETS[nodeIndex % PATH_OFFSETS.length];
+            const icon = state === 'done' ? '✓' : (state === 'current' ? '★' : '🔒');
+            const cleanTitle = quiz ? quiz.title.replace(/^Kuis:\s*/, '').replace(/^👑 BOSS:\s*/, 'BOSS: ') : qid;
+            const bubble = state === 'current' ? '<span class="start-bubble">MULAI</span>' : '';
+
+            html += `
+                <div class="path-row">
+                    <button type="button" class="path-node ${state}" data-quest-id="${qid}"
+                        style="transform:translateX(${offset}px)"
+                        title="${cleanTitle} (+${QUEST_XP[qid] || 0} XP)"
+                        ${state === 'locked' ? 'disabled' : ''}>
+                        ${bubble}<span>${icon}</span>
+                    </button>
+                </div>`;
+
+            nodeIndex++;
+        });
+
+        html += '</div>';
+    });
+
+    pathContainer.innerHTML = html;
+}
+
+function switchWorld(worldId) {
+    if (currentUser.activeWorld === worldId) return;
+    currentUser.activeWorld = worldId;
+    saveGame();      // pilihan dunia ikut tersimpan
+    renderPath();    // seluruh path berganti materi + tema warna
+}
+
+// ============================================================
+// STREAK & GEMS
+// ============================================================
+
+function touchStreak() {
+    const today = new Date().toDateString();
+    if (currentUser.lastQuestDate === today) return; // sudah aktivitas hari ini
+
+    const yesterday = new Date(Date.now() - 86400000).toDateString();
+    currentUser.streak = (currentUser.lastQuestDate === yesterday) ? currentUser.streak + 1 : 1;
+    currentUser.lastQuestDate = today;
+}
+
+function normalizeStreak() {
+    // Dipanggil saat load: streak hangus jika tidak aktif kemarin & hari ini
+    if (!currentUser.lastQuestDate) { currentUser.streak = 0; return; }
+    const today = new Date().toDateString();
+    const yesterday = new Date(Date.now() - 86400000).toDateString();
+    if (currentUser.lastQuestDate !== today && currentUser.lastQuestDate !== yesterday) {
+        currentUser.streak = 0;
+    }
+}
+
+// ============================================================
+// FUNGSI INTI
 // ============================================================
 
 function updateUI() {
@@ -137,7 +250,9 @@ function updateUI() {
     xpBar.style.width = `${xpPercentage}%`;
     xpText.textContent = `${currentUser.xp} / ${currentUser.xpToNextLevel} XP`;
     levelText.textContent = `Level ${currentUser.level}`;
-    checkQuestsAvailability();
+    topLevelText.textContent = `Lv ${currentUser.level}`;
+    gemsText.textContent = currentUser.gems;
+    streakText.textContent = currentUser.streak;
 }
 
 function addXP(amount) {
@@ -156,78 +271,31 @@ function levelUp() {
     levelUpModal.classList.remove('hidden');
 }
 
-function unlockSkill(skillId) {
-    if (!skillId) return;
-    unlockedSkills.add(skillId);
-
-    const skillNode = document.getElementById(skillId);
-    if (skillNode && skillNode.classList.contains('locked')) {
-        const isBoss = skillNode.dataset.boss === 'true';
-
-        skillNode.classList.remove('locked', 'bg-gray-600', 'opacity-50', 'boss-glow');
-        skillNode.classList.add('unlocked', 'bg-gradient-to-br');
-
-        if (isBoss) {
-            skillNode.classList.remove('border-purple-500');
-            skillNode.classList.add('from-purple-500', 'to-fuchsia-600', 'border-purple-300');
-        } else {
-            skillNode.classList.add('from-cyan-500', 'to-blue-600');
-        }
-
-        skillNode.querySelector('p').textContent = 'Telah Dipelajari';
-    }
-}
-
-function checkQuestsAvailability() {
-    const allQuests = questList.querySelectorAll('.quest-card');
-    allQuests.forEach(quest => {
-        const levelReq = parseInt(quest.dataset.levelReq || '1');
-        const isCompleted = quest.classList.contains('opacity-30');
-
-        const skillReq = quest.dataset.skillReq;
-        const skillOk = !skillReq || skillReq.split(',').every(id => unlockedSkills.has(id.trim()));
-
-        if (currentUser.level >= levelReq && skillOk && !isCompleted) {
-            quest.classList.remove('opacity-50', 'cursor-not-allowed');
-            const button = quest.querySelector('.complete-btn');
-            if (!button) return;
-
-            button.disabled = false;
-            button.classList.remove('bg-gray-500', 'cursor-not-allowed');
-            button.classList.add('bg-cyan-500', 'hover:bg-cyan-600');
-
-            if (button.textContent.includes('Terkunci')) {
-                button.textContent = 'Mulai Kuis';
-            }
-        }
-    });
-}
-
+/**
+ * [PENTING] Urutan 3 fase dipertahankan dari fix lama:
+ * 1. Perbarui STATE (quest selesai, gem, streak)
+ * 2. Picu updateUI (addXP) — level up dicek di sini
+ * 3. Simpan + renderPath() -> node BERIKUTNYA langsung terbuka
+ *    tanpa perlu refresh! (pola sama dengan fix Boss Quest dulu)
+ */
 function completeQuest() {
-    const { questCard, xpToAdd, skillToUnlock, questId } = activeQuestData;
+    const { questId, xpToAdd } = activeQuestData;
 
-    // FASE 1: state dulu
-    if (skillToUnlock) unlockSkill(skillToUnlock);
+    // FASE 1: state
     completedQuests.add(questId);
+    currentUser.gems += GEMS_PER_QUEST;
+    touchStreak();
 
-    questCard.classList.add('opacity-30');
-    const button = questCard.querySelector('.complete-btn');
-    if (button) {
-        button.disabled = true;
-        button.textContent = 'Selesai';
-        button.classList.remove('bg-cyan-500', 'hover:bg-cyan-600');
-        button.classList.add('bg-gray-500');
-    }
-
-    // FASE 2: baru picu pengecekan quest (Boss terbuka tanpa refresh)
+    // FASE 2: update UI / level up
     addXP(xpToAdd);
 
-    // FASE 3: simpan
+    // FASE 3: simpan + refresh path agar node berikutnya terbuka seketika
     saveGame();
+    renderPath();
 }
 
 // ============================================================
-// [BARU] SLIDE ENGINE
+// SLIDE ENGINE (dengan fix isAnswered per-slide)
 // ============================================================
 
 function loadQuiz(questId) {
@@ -245,26 +313,22 @@ function loadQuiz(questId) {
 }
 
 function renderSlide() {
+    // [FIX] Slide baru SELALU berstatus "belum dijawab".
+    // Tanpa reset ini, isAnswered basi dari slide sebelumnya
+    // membuat semua tombol opsi di slide berikutnya mati.
+    slideState.isAnswered = false;
+
     const slide = slideState.slides[slideState.currentSlide];
     const total = slideState.slides.length;
 
-    // [FIX] Setiap slide yang baru dirender SELALU dimulai dalam kondisi
-    // "belum dijawab". Tanpa reset ini, isAnswered masih true dari
-    // slide sebelumnya -> semua tombol opsi di slide berikutnya mati.
-    slideState.isAnswered = false;
-
-    // Header: counter & progress
     slideCounter.textContent = `Slide ${slideState.currentSlide + 1} / ${total}`;
     slideProgressBar.style.width = `${(slideState.currentSlide / total) * 100}%`;
-
     slideQuestion.textContent = `${slideState.currentSlide + 1}. ${slide.question}`;
 
-    // Reset kotak feedback
     clueBox.classList.add('hidden');
     explanationBox.classList.add('hidden');
     nextSlideBtn.classList.add('hidden');
 
-    // Bangun tombol opsi A-D
     let optionsHTML = '';
     for (const [letter, text] of Object.entries(slide.options)) {
         optionsHTML += `
@@ -275,45 +339,34 @@ function renderSlide() {
     }
     slideOptions.innerHTML = optionsHTML;
 }
+
 function handleOptionClick(button) {
-    // Slide terkunci setelah dijawab benar
     if (slideState.isAnswered || button.disabled) return;
 
     const slide = slideState.slides[slideState.currentSlide];
     const letter = button.dataset.letter;
 
     if (letter === slide.correct_answer) {
-        // --- BENAR: debrief explanation ---
         slideState.isAnswered = true;
         button.classList.add('option-correct');
-
-        // Kunci semua opsi
         slideOptions.querySelectorAll('.option-btn').forEach(b => b.disabled = true);
 
         explanationText.textContent = slide.explanation;
         explanationBox.classList.remove('hidden');
 
-        // Progress naik ke posisi slide berikutnya (terasa "melangkah")
         const total = slideState.slides.length;
         slideProgressBar.style.width = `${((slideState.currentSlide + 1) / total) * 100}%`;
 
         const isLastSlide = slideState.currentSlide === total - 1;
         nextSlideBtn.textContent = isLastSlide ? '🎉 Selesai & Lihat Hasil' : 'Slide Berikutnya ➜';
         nextSlideBtn.classList.remove('hidden');
-
     } else {
-        // --- SALAH: clue scaffolding, jawaban TIDAK dibocorkan ---
         button.classList.add('option-wrong', 'shake');
-        button.disabled = true; // opsi salah dieliminasi, sisanya masih bisa diklik
-
+        button.disabled = true;
         clueText.textContent = slide.clue;
         clueBox.classList.remove('hidden');
     }
 }
-
-// ============================================================
-// FUN FACT POPUP (tidak berubah)
-// ============================================================
 
 function showFunFact() {
     const quiz = quizData[activeQuestData.questId];
@@ -328,59 +381,71 @@ function showFunFact() {
     funFactModal.classList.remove('hidden');
 }
 
-// --- EVENT LISTENERS ---
+// ============================================================
+// EVENT LISTENERS
+// ============================================================
 
-questList.addEventListener('click', function (e) {
-    const button = e.target.closest('.complete-btn');
-    if (!button || button.disabled) return;
+// Klik node path (event delegation)
+pathContainer.addEventListener('click', function (e) {
+    const btn = e.target.closest('.path-node');
+    if (!btn || btn.disabled) return;
 
-    const questCard = button.closest('.quest-card');
-    const questId = questCard.dataset.questId;
-    const xpToAdd = parseInt(questCard.dataset.xp);
-    const skillToUnlock = questCard.dataset.skillId;
+    const qid = btn.dataset.questId;
+    if (completedQuests.has(qid)) return; // node selesai tak bisa diulang (anti-farming XP)
 
-    if (quizData[questId]) {
-        activeQuestData = { questCard, xpToAdd, skillToUnlock, questId };
-        loadQuiz(questId);
-    } else {
-        console.warn('Tidak ada kuis untuk quest ini, langsung selesaikan.');
-        activeQuestData = { questCard, xpToAdd, skillToUnlock, questId };
-        completeQuest();
-    }
+    activeQuestData = { questId: qid, xpToAdd: QUEST_XP[qid] || 20 };
+    loadQuiz(qid);
 });
 
-// [BARU] Klik opsi jawaban (event delegation)
+// World Switcher
+worldSwitcherBtn.addEventListener('click', function (e) {
+    e.stopPropagation();
+    worldDropdown.classList.toggle('hidden');
+});
+
+worldDropdown.addEventListener('click', function (e) {
+    e.stopPropagation();
+    const option = e.target.closest('[data-world]');
+    if (!option) return;
+    switchWorld(option.dataset.world);
+    worldDropdown.classList.add('hidden');
+});
+
+document.addEventListener('click', function () {
+    worldDropdown.classList.add('hidden'); // klik di luar -> tutup dropdown
+});
+
+// Slide engine
 slideOptions.addEventListener('click', function (e) {
     const button = e.target.closest('.option-btn');
     if (!button) return;
     handleOptionClick(button);
 });
 
-// [BARU] Tombol slide berikutnya / selesai
 nextSlideBtn.addEventListener('click', function () {
-    if (!slideState.isAnswered) return; // pengaman
+    if (!slideState.isAnswered) return;
 
     if (slideState.currentSlide < slideState.slides.length - 1) {
         slideState.currentSlide++;
         renderSlide();
     } else {
-        // Slide terakhir selesai -> tutup kuis, tampilkan Fun Fact
         quizModal.classList.add('hidden');
         showFunFact();
     }
-});
-
-closeModalBtn.addEventListener('click', function () {
-    levelUpModal.classList.add('hidden');
 });
 
 closeQuizBtn.addEventListener('click', function () {
     quizModal.classList.add('hidden');
 });
 
+// Fun Fact -> selesaikan quest
 funFactContinueBtn.addEventListener('click', function () {
     funFactModal.classList.add('hidden');
-    completeQuest(); // XP, skill, pengecekan Boss
+    completeQuest();
+});
+
+closeModalBtn.addEventListener('click', function () {
+    levelUpModal.classList.add('hidden');
 });
 
 if (resetProgressBtn) {
@@ -389,20 +454,23 @@ if (resetProgressBtn) {
 
 // --- INISIALISASI ---
 document.addEventListener('DOMContentLoaded', function () {
-    if (typeof quizData === 'undefined') {
-        alert('ERROR: js/quiz-data.js gagal dimuat — kuis tidak bisa jalan.');
+    if (typeof quizData === 'undefined' || typeof CONCENTRATIONS === 'undefined') {
+        alert('ERROR: js/quiz-data.js gagal dimuat — game tidak bisa jalan.');
         return;
     }
 
     const hasSave = loadGame();
 
     if (hasSave) {
-        applySavedState();
+        normalizeStreak();
+        renderPath();
         updateUI();
-        console.log('💾 Progres dimuat: Level', currentUser.level, '| Quest selesai:', completedQuests.size);
+        console.log('💾 Progres dimuat: Lv', currentUser.level, '| Dunia:', currentUser.activeWorld, '| Quest selesai:', completedQuests.size);
     } else {
         addXP(INITIAL_XP);
         saveGame();
-        console.log('🆕 Game baru dimulai, progres tersimpan otomatis.');
+        renderPath();
+        updateUI();
+        console.log('🆕 Game baru dimulai.');
     }
 });
