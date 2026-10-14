@@ -4,7 +4,7 @@ body {
 }
 
 /* ============================================================
-   TEMA PER DUNIA — warna berubah otomatis saat ganti konsentrasi
+   TEMA PER DUNIA
    ============================================================ */
 body[data-theme="marketing"] {
     --theme: #06B6D4; --theme-dark: #0E7490; --theme-light: #67E8F9;
@@ -23,15 +23,15 @@ body[data-theme="analytics"] {
     --theme-ring: rgba(245, 158, 11, 0.4); --theme-soft: rgba(245, 158, 11, 0.15);
 }
 
-/* Elemen yang mengikuti tema */
 .brand { color: var(--theme); }
+.avatar-hero { background: linear-gradient(135deg, var(--theme), var(--theme-dark)); }
 #xpBar {
     transition: width 0.5s ease-in-out;
     background: linear-gradient(90deg, var(--theme-light), var(--theme));
 }
 
 /* ============================================================
-   TOP BAR — pill status
+   TOP BAR
    ============================================================ */
 .pill {
     display: flex; align-items: center; gap: 0.3rem;
@@ -39,7 +39,6 @@ body[data-theme="analytics"] {
     border-radius: 9999px; white-space: nowrap;
 }
 
-/* Dropdown world switcher */
 .world-option { display: block; width: 100%; text-align: left; padding: 0.7rem 1rem; transition: background 0.15s; }
 .world-option:hover { background: #374151; }
 .world-option.active-world {
@@ -48,7 +47,75 @@ body[data-theme="analytics"] {
 }
 
 /* ============================================================
-   PATH DUOLINGO — banner unit + node zig-zag
+   [BARU] NAVIGASI — SIDEBAR (desktop) & BOTTOM NAV (mobile)
+   ============================================================ */
+.nav-item {
+    display: flex; align-items: center; gap: 0.75rem;
+    width: 100%; padding: 0.65rem 1rem;
+    border-radius: 0.75rem;
+    font-weight: 800; font-size: 0.875rem; letter-spacing: 0.04em;
+    color: #9CA3AF; border: 2px solid transparent;
+    transition: background 0.15s, color 0.15s;
+}
+.nav-item:hover { background: #374151; color: #fff; }
+.nav-item.active {
+    color: var(--theme);
+    background: var(--theme-soft);
+    border-color: var(--theme);
+}
+
+#bottomNav { padding-bottom: env(safe-area-inset-bottom); }
+.bottom-nav-item {
+    display: flex; flex-direction: column; align-items: center; gap: 0.15rem;
+    padding: 0.55rem 0 0.65rem;
+    font-size: 0.7rem; font-weight: 800;
+    color: #9CA3AF;
+    border-top: 3px solid transparent;
+    transition: color 0.15s, background 0.15s;
+}
+.bottom-nav-item .icon { font-size: 1.3rem; line-height: 1; }
+.bottom-nav-item.active {
+    color: var(--theme);
+    border-top-color: var(--theme);
+    background: var(--theme-soft);
+}
+
+/* ============================================================
+   [BARU] HALAMAN PROFIL
+   ============================================================ */
+.stat-card {
+    background: #374151; border-radius: 0.75rem;
+    padding: 1rem 0.75rem; text-align: center;
+    display: flex; flex-direction: column; gap: 0.15rem;
+}
+.stat-card .stat-value { font-size: 1.5rem; font-weight: 800; line-height: 1.2; }
+.stat-card .stat-label { font-size: 0.75rem; color: #9CA3AF; }
+
+.world-progress-row {
+    display: flex; align-items: center; gap: 0.9rem;
+    width: 100%; text-align: left;
+    background: #374151; border-radius: 0.75rem;
+    padding: 0.9rem 1rem;
+    transition: background 0.15s, transform 0.1s;
+}
+.world-progress-row:hover { background: #4B5563; }
+.world-progress-row:active { transform: scale(0.99); }
+.world-progress-bar { background: linear-gradient(90deg, var(--theme-light), var(--theme)); transition: width 0.4s ease; }
+
+.achievement-card {
+    display: flex; align-items: center; gap: 0.75rem;
+    background: #374151; border: 2px solid transparent;
+    border-radius: 0.75rem; padding: 0.75rem 0.9rem;
+    opacity: 0.45;
+}
+.achievement-card.unlocked {
+    opacity: 1;
+    border-color: var(--theme);
+    background: var(--theme-soft);
+}
+
+/* ============================================================
+   PATH DUOLINGO
    ============================================================ */
 .unit-banner { background: linear-gradient(135deg, var(--theme), var(--theme-dark)); }
 
@@ -57,7 +124,6 @@ body[data-theme="analytics"] {
     display: flex; flex-direction: column; align-items: center;
     gap: 1.5rem; padding: 2rem 0 2.5rem;
 }
-/* Garis putus-putus vertikal di belakang node */
 .path-wrap::before {
     content: ''; position: absolute; top: 2.5rem; bottom: 2.5rem;
     left: 50%; width: 6px; transform: translateX(-50%);
@@ -89,18 +155,23 @@ body[data-theme="analytics"] {
     50%      { box-shadow: 0 4px 0 rgba(0,0,0,0.35), 0 0 0 12px transparent; }
 }
 
-/* Gelembung "MULAI" di atas node aktif */
 .start-bubble {
     position: absolute; top: -2.4rem; left: 50%; transform: translateX(-50%);
     background: #fff; color: #111827;
     font-weight: 800; font-size: 0.7rem; letter-spacing: 0.05em;
     padding: 0.25rem 0.7rem; border-radius: 9999px;
-    animation: popIn 0.35s ease-out; z-index: 2;
+    animation: bubblePop 0.35s ease-out; z-index: 2;
 }
 .start-bubble::after {
     content: ''; position: absolute; left: 50%; bottom: -6px;
     transform: translateX(-50%);
     border: 6px solid transparent; border-top-color: #fff; border-bottom: 0;
+}
+
+@keyframes bubblePop {
+    0%   { transform: translateX(-50%) scale(0.7); opacity: 0; }
+    70%  { transform: translateX(-50%) scale(1.05); }
+    100% { transform: translateX(-50%) scale(1); opacity: 1; }
 }
 
 /* ============================================================
@@ -120,8 +191,67 @@ body[data-theme="analytics"] {
 .shake { animation: shake 0.4s ease; }
 
 @keyframes popIn {
-    0%   { transform: translateX(-50%) scale(0.7); opacity: 0; }
-    70%  { transform: translateX(-50%) scale(1.05); }
-    100% { transform: translateX(-50%) scale(1); opacity: 1; }
+    0%   { transform: scale(0.7); opacity: 0; }
+    70%  { transform: scale(1.05); }
+    100% { transform: scale(1); opacity: 1; }
 }
 .pop-in { animation: popIn 0.35s ease-out; }
+
+/* ============================================================
+   [BARU] AI TUTOR — Chat UI
+   ============================================================ */
+#tutorChatLog { scroll-behavior: smooth; }
+
+.msg {
+    max-width: 85%;
+    padding: 0.7rem 1rem;
+    border-radius: 1rem;
+    font-size: 0.925rem;
+    line-height: 1.6;
+    animation: popIn 0.25s ease-out;
+    word-wrap: break-word;
+}
+.msg-user {
+    align-self: flex-end;
+    background: var(--theme);
+    color: #fff;
+    border-bottom-right-radius: 0.25rem;
+}
+.msg-tutor {
+    align-self: flex-start;
+    background: #374151;
+    border-bottom-left-radius: 0.25rem;
+}
+
+.msg-source {
+    margin-top: 0.6rem;
+    padding-top: 0.5rem;
+    border-top: 1px dashed #6B7280;
+    font-size: 0.72rem;
+    color: #9CA3AF;
+}
+
+.chip {
+    background: #374151;
+    border: 1px solid #4B5563;
+    padding: 0.3rem 0.8rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #D1D5DB;
+    transition: background 0.15s, color 0.15s;
+}
+.chip:hover { background: var(--theme); color: #fff; border-color: var(--theme); }
+
+.related-details {
+    background: #111827;
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    margin-top: 0.5rem;
+    font-size: 0.85rem;
+}
+.related-details summary { cursor: pointer; font-weight: 700; color: #D1D5DB; }
+.related-details summary:hover { color: var(--theme-light); }
+
+.typing { animation: blinkText 1.2s ease-in-out infinite; color: #9CA3AF; }
+@keyframes blinkText { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
