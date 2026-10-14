@@ -12,113 +12,190 @@
 </head>
 <body data-theme="marketing" class="text-white">
 
-    <!-- ============================================================
-         [BARU] TOP BAR — Sticky: World Switcher + Status Pemain
-         ============================================================ -->
-    <nav class="sticky top-0 z-40 bg-gray-800/95 backdrop-blur border-b border-gray-700 shadow-lg">
-        <div class="container mx-auto px-4 py-2.5 flex items-center justify-between gap-2">
+    <!-- Sidebar — Desktop -->
+    <aside class="hidden lg:flex fixed left-0 top-0 bottom-0 w-60 bg-gray-800 border-r border-gray-700 flex-col p-4 z-40">
+        <h1 class="brand text-xl font-extrabold px-2 mb-8">🎓 Trancension Academy</h1>
+        <nav class="space-y-1">
+            <button class="nav-item active" data-page="learn"><span class="text-xl">🏠</span> BELAJAR</button>
+            <!-- [BARU] Tab Tanya Jawab -->
+            <button class="nav-item" data-page="tutor"><span class="text-xl">💬</span> TANYA JAWAB</button>
+            <button class="nav-item" data-page="profile"><span class="text-xl">👤</span> PROFIL</button>
+        </nav>
+        <p class="mt-auto text-[11px] text-gray-500 px-2 leading-relaxed">Trancension Academy<br>Belajar bisnis digital, senyaman bermain game.</p>
+    </aside>
 
-            <!-- Brand (sembunyi di layar kecil) -->
-            <h1 class="brand text-lg md:text-xl font-extrabold hidden sm:block whitespace-nowrap">🎓 Trancension Academy</h1>
+    <div class="lg:ml-60">
 
-            <!-- [BARU] World Switcher (Ikon Bendera) -->
-            <div class="relative">
-                <button id="worldSwitcherBtn"
-                        class="flex items-center gap-2 bg-gray-700 hover:bg-gray-600 px-3 py-2 rounded-lg font-semibold text-sm transition duration-150">
-                    <span id="worldSwitcherFlag" class="text-lg">📊</span>
-                    <span id="currentWorldName" class="hidden sm:inline">Digital Marketing</span>
-                    <span class="text-[10px] opacity-70">▼</span>
-                </button>
-                <div id="worldDropdown"
-                     class="hidden absolute left-0 mt-2 w-72 bg-gray-800 border border-gray-600 rounded-xl shadow-2xl overflow-hidden z-50">
-                    <button data-world="marketing" class="world-option">
-                        <span class="text-xl mr-2">📊</span>
-                        <span class="font-bold">Digital Marketing</span>
-                        <span class="block text-xs text-gray-400 ml-8">SEO, Konten & Media Sosial</span>
+        <!-- TOP BAR -->
+        <nav class="sticky top-0 z-40 bg-gray-800/95 backdrop-blur border-b border-gray-700 shadow-lg">
+            <div class="container mx-auto px-4 py-2.5 flex items-center justify-between gap-2">
+                <h1 class="brand text-lg font-extrabold hidden sm:block lg:hidden whitespace-nowrap">🎓 Trancension</h1>
+                <div class="relative">
+                    <button id="worldSwitcherBtn"
+                            class="flex items-center gap-2 bg-gray-700 hover:bg-gray-600 px-3 py-2 rounded-lg font-semibold text-sm transition duration-150">
+                        <span id="worldSwitcherFlag" class="text-lg">📊</span>
+                        <span id="currentWorldName" class="hidden sm:inline">Digital Marketing</span>
+                        <span class="text-[10px] opacity-70">▼</span>
                     </button>
-                    <button data-world="fintech" class="world-option">
-                        <span class="text-xl mr-2">🏦</span>
-                        <span class="font-bold">Fintech</span>
-                        <span class="block text-xs text-gray-400 ml-8">Pembayaran Digital & Keuangan</span>
-                    </button>
-                    <button data-world="entrepreneurship" class="world-option">
-                        <span class="text-xl mr-2">🚀</span>
-                        <span class="font-bold">Digital Entrepreneurship</span>
-                        <span class="block text-xs text-gray-400 ml-8">Startup</span>
-                    </button>
-                    <button data-world="analytics" class="world-option">
-                        <span class="text-xl mr-2">📈</span>
-                        <span class="font-bold">Business Analytics</span>
-                        <span class="block text-xs text-gray-400 ml-8">Data & Pengambilan Keputusan</span>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Status & Sumber Daya Pemain -->
-            <div class="flex items-center gap-1.5 md:gap-3 text-sm font-bold">
-                <span title="Streak harian" class="pill">🔥 <span id="streakText">0</span></span>
-                <span title="Permata" class="pill">💎 <span id="gemsText">0</span></span>
-                <span title="Nyawa (segera hadir)" class="pill hidden md:flex">❤️ 5</span>
-                <span title="Level kamu" class="pill">⭐ <span id="topLevelText">Lv 1</span></span>
-                <button id="resetProgressBtn" title="Reset Progres"
-                        class="text-gray-400 hover:text-red-400 hover:bg-gray-700 px-2 py-1.5 rounded-lg transition">⟳</button>
-            </div>
-        </div>
-    </nav>
-
-    <!-- Konten Utama -->
-    <main class="container mx-auto p-4 md:p-8 space-y-8">
-
-        <!-- Character Sheet -->
-        <section class="bg-gray-800 p-6 rounded-xl shadow-2xl">
-            <div class="flex flex-col md:flex-row items-start md:items-center space-y-4 md:space-y-0 md:space-x-6">
-                <div class="w-24 h-24 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-full flex items-center justify-center text-4xl font-bold border-4 border-gray-700">
-                    T
-                </div>
-                <div class="w-full">
-                    <h2 class="text-3xl font-bold">Teja</h2>
-                    <p class="text-lg text-cyan-400">Digital Business Strategist</p>
-                    <div class="mt-4">
-                        <div class="flex justify-between items-end mb-1">
-                            <span id="levelText" class="text-xl font-bold text-white">Level 1</span>
-                            <span id="xpText" class="text-sm font-medium text-gray-300">0 / 100 XP</span>
-                        </div>
-                        <div class="w-full bg-gray-700 rounded-full h-4 overflow-hidden">
-                            <div id="xpBar" class="h-4 rounded-full" style="width: 0%"></div>
-                        </div>
+                    <div id="worldDropdown"
+                         class="hidden absolute left-0 mt-2 w-72 bg-gray-800 border border-gray-600 rounded-xl shadow-2xl overflow-hidden z-50">
+                        <button data-world="marketing" class="world-option">
+                            <span class="text-xl mr-2">📊</span><span class="font-bold">Digital Marketing</span>
+                            <span class="block text-xs text-gray-400 ml-8">SEO, Konten & Media Sosial</span>
+                        </button>
+                        <button data-world="fintech" class="world-option">
+                            <span class="text-xl mr-2">🏦</span><span class="font-bold">Fintech</span>
+                            <span class="block text-xs text-gray-400 ml-8">Pembayaran Digital & Keuangan</span>
+                        </button>
+                        <button data-world="entrepreneurship" class="world-option">
+                            <span class="text-xl mr-2">🚀</span><span class="font-bold">Digital Entrepreneurship</span>
+                            <span class="block text-xs text-gray-400 ml-8">Startup & Bisnis Digital</span>
+                        </button>
+                        <button data-world="analytics" class="world-option">
+                            <span class="text-xl mr-2">📈</span><span class="font-bold">Business Analytics</span>
+                            <span class="block text-xs text-gray-400 ml-8">Data & Pengambilan Keputusan</span>
+                        </button>
                     </div>
                 </div>
+                <div class="flex items-center gap-1.5 md:gap-3 text-sm font-bold">
+                    <span title="Streak harian" class="pill">🔥 <span id="streakText">0</span></span>
+                    <span title="Permata" class="pill">💎 <span id="gemsText">0</span></span>
+                    <span title="Nyawa (segera hadir)" class="pill hidden md:flex">❤️ 5</span>
+                    <span title="Level kamu" class="pill">⭐ <span id="topLevelText">Lv 1</span></span>
+                </div>
+            </div>
+        </nav>
+
+        <main class="container mx-auto p-4 md:p-8 pb-28 lg:pb-10">
+
+            <!-- HALAMAN: BELAJAR -->
+            <div id="page-learn" class="page space-y-8">
+                <section class="bg-gray-800 p-6 rounded-xl shadow-2xl">
+                    <div class="flex flex-col md:flex-row items-start md:items-center space-y-4 md:space-y-0 md:space-x-6">
+                        <div class="avatar-hero w-24 h-24 rounded-full flex items-center justify-center text-4xl font-bold border-4 border-gray-700">T</div>
+                        <div class="w-full">
+                            <h2 class="text-3xl font-bold">Teja</h2>
+                            <p class="text-lg brand">Digital Business Strategist</p>
+                            <div class="mt-4">
+                                <div class="flex justify-between items-end mb-1">
+                                    <span id="levelText" class="text-xl font-bold text-white">Level 1</span>
+                                    <span id="xpText" class="text-sm font-medium text-gray-300">0 / 100 XP</span>
+                                </div>
+                                <div class="w-full bg-gray-700 rounded-full h-4 overflow-hidden">
+                                    <div id="xpBar" class="h-4 rounded-full" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div class="bg-gray-700 p-4 rounded-lg text-center"><span class="text-sm text-gray-400">ANALYTICS</span><p class="text-2xl font-bold">5</p></div>
+                        <div class="bg-gray-700 p-4 rounded-lg text-center"><span class="text-sm text-gray-400">CREATIVITY</span><p class="text-2xl font-bold">5</p></div>
+                        <div class="bg-gray-700 p-4 rounded-lg text-center"><span class="text-sm text-gray-400">STRATEGY</span><p class="text-2xl font-bold">5</p></div>
+                        <div class="bg-gray-700 p-4 rounded-lg text-center"><span class="text-sm text-gray-400">TECHNICAL</span><p class="text-2xl font-bold">5</p></div>
+                    </div>
+                </section>
+
+                <section class="bg-gray-800 p-4 md:p-6 rounded-xl shadow-2xl">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 mb-1">
+                        <h2 class="text-2xl font-bold">Peta Pembelajaran</h2>
+                        <p class="text-sm text-gray-400">Dunia: <span id="pathWorldName" class="font-semibold text-white">Digital Marketing</span></p>
+                    </div>
+                    <p class="text-sm text-gray-400 mb-4">Selesaikan node satu per satu untuk membuka node berikutnya.</p>
+                    <div id="pathContainer"></div>
+                </section>
             </div>
 
-            <div class="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div class="bg-gray-700 p-4 rounded-lg text-center">
-                    <span class="text-sm text-gray-400">ANALYTICS</span><p class="text-2xl font-bold">5</p>
-                </div>
-                <div class="bg-gray-700 p-4 rounded-lg text-center">
-                    <span class="text-sm text-gray-400">CREATIVITY</span><p class="text-2xl font-bold">5</p>
-                </div>
-                <div class="bg-gray-700 p-4 rounded-lg text-center">
-                    <span class="text-sm text-gray-400">STRATEGY</span><p class="text-2xl font-bold">5</p>
-                </div>
-                <div class="bg-gray-700 p-4 rounded-lg text-center">
-                    <span class="text-sm text-gray-400">TECHNICAL</span><p class="text-2xl font-bold">5</p>
-                </div>
-            </div>
-        </section>
+            <!-- ============================================================
+                 [BARU] HALAMAN: TANYA JAWAB (AI Tutor)
+                 ============================================================ -->
+            <div id="page-tutor" class="page hidden space-y-6">
 
-        <!-- ============================================================
-             [BARU] PETA PEMBELAJARAN ala Duolingo
-             (banner unit + node path — dirender oleh JavaScript)
-             ============================================================ -->
-        <section class="bg-gray-800 p-4 md:p-6 rounded-xl shadow-2xl">
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 mb-1">
-                <h2 class="text-2xl font-bold">Peta Pembelajaran</h2>
-                <p class="text-sm text-gray-400">Dunia: <span id="pathWorldName" class="font-semibold text-white">Digital Marketing</span></p>
+                <section class="bg-gray-800 p-6 rounded-xl shadow-2xl">
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                        <div class="flex items-center gap-4">
+                            <div class="avatar-hero w-14 h-14 rounded-full flex items-center justify-center text-2xl shrink-0">🤖</div>
+                            <div>
+                                <h2 class="text-2xl font-bold">AI Tutor Bisnis Digital</h2>
+                                <p class="text-sm text-gray-400">Tanya apa saja — dijawab dari basis pengetahuan lokal, tanpa internet.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2 shrink-0">
+                            <label for="tutorScope" class="text-sm text-gray-400 whitespace-nowrap">Cakupan materi:</label>
+                            <select id="tutorScope"
+                                    class="bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm font-semibold">
+                                <option value="all">🌐 Semua</option>
+                                <option value="marketing">📊 Marketing</option>
+                                <option value="fintech">🏦 Fintech</option>
+                                <option value="entrepreneurship">🚀 Kewirausahaan</option>
+                                <option value="analytics">📈 Analisis</option>
+                            </select>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="bg-gray-800 p-4 md:p-6 rounded-xl shadow-2xl flex flex-col" style="height: 62vh; min-height: 420px;">
+                    <div id="tutorChatLog" class="flex-1 overflow-y-auto pr-1 space-y-3"></div>
+                    <div id="tutorChips" class="flex flex-wrap gap-2 pt-3"></div>
+                    <form id="tutorForm" class="flex gap-2 pt-3 mt-3 border-t border-gray-700">
+                        <input id="tutorInput" type="text" autocomplete="off"
+                               placeholder="Contoh: Apa itu payment gateway?"
+                               class="flex-1 bg-gray-700 rounded-lg px-4 py-3 text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                        <button type="submit"
+                                class="bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-3 px-5 rounded-lg transition duration-150">
+                            Cari 🔍
+                        </button>
+                    </form>
+                </section>
             </div>
-            <p class="text-sm text-gray-400 mb-4">Selesaikan node satu per satu untuk membuka node berikutnya.</p>
-            <div id="pathContainer"></div>
-        </section>
-    </main>
+
+            <!-- HALAMAN: PROFIL -->
+            <div id="page-profile" class="page hidden space-y-8">
+                <section class="bg-gray-800 p-6 rounded-xl shadow-2xl">
+                    <div class="flex items-center gap-5">
+                        <div class="avatar-hero w-20 h-20 rounded-full flex items-center justify-center text-3xl font-bold border-4 border-gray-700 shrink-0">T</div>
+                        <div class="min-w-0">
+                            <h2 class="text-2xl font-bold">Teja</h2>
+                            <p class="brand font-semibold">Digital Business Strategist</p>
+                            <p id="profileJoinedDate" class="text-sm text-gray-400 mt-1">Bergabung —</p>
+                        </div>
+                    </div>
+                </section>
+
+                <section>
+                    <h3 class="text-xl font-bold mb-3">Statistik</h3>
+                    <div id="profileStats" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
+                </section>
+
+                <section class="bg-gray-800 p-6 rounded-xl shadow-2xl">
+                    <h3 class="text-xl font-bold mb-1">Progres Konsentrasi</h3>
+                    <p class="text-sm text-gray-400 mb-4">Klik salah satu untuk langsung melompat ke dunianya.</p>
+                    <div id="worldProgressList" class="space-y-3"></div>
+                </section>
+
+                <section class="bg-gray-800 p-6 rounded-xl shadow-2xl">
+                    <div class="flex justify-between items-baseline mb-4">
+                        <h3 class="text-xl font-bold">Pencapaian</h3>
+                        <span id="achCountText" class="text-sm font-bold text-gray-400">0 / 0 terbuka</span>
+                    </div>
+                    <div id="achievementList" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+                </section>
+
+                <section class="bg-gray-800 p-6 rounded-xl shadow-2xl border border-red-900/50">
+                    <h3 class="text-lg font-bold text-red-400 mb-1">Zona Berbahaya</h3>
+                    <p class="text-sm text-gray-400 mb-4">Menghapus seluruh progres (level, XP, gems, streak, quest) secara permanen.</p>
+                    <button id="resetProgressBtn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-5 rounded-lg transition duration-150">⟳ Reset Progres</button>
+                </section>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Bottom Nav — Mobile -->
+    <nav id="bottomNav" class="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-gray-800 border-t border-gray-700 flex shadow-2xl">
+        <button class="bottom-nav-item flex-1 active" data-page="learn"><span class="icon">🏠</span><span>Belajar</span></button>
+        <button class="bottom-nav-item flex-1" data-page="tutor"><span class="icon">💬</span><span>Tutor</span></button>
+        <button class="bottom-nav-item flex-1" data-page="profile"><span class="icon">👤</span><span>Profil</span></button>
+    </nav>
 
     <!-- Modal Notifikasi (Level Up) -->
     <div id="levelUpModal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 hidden">
@@ -130,7 +207,7 @@
         </div>
     </div>
 
-    <!-- Modal Kuis — slide-by-slide interaktif -->
+    <!-- Modal Kuis — slide-by-slide -->
     <div id="quizModal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 hidden">
         <div class="bg-gray-800 border-2 border-cyan-400 p-8 rounded-xl shadow-2xl w-11/12 md:w-2/3 lg:w-1/2 max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center mb-3">
@@ -142,7 +219,6 @@
             </div>
             <p id="slideQuestion" class="text-lg font-semibold leading-relaxed mb-6">Pertanyaan...</p>
             <div id="slideOptions" class="space-y-3 mb-6"></div>
-
             <div id="clueBox" class="hidden bg-gray-900/70 border-l-4 border-amber-400 p-4 rounded-lg mb-4">
                 <p class="text-sm text-amber-300 font-bold mb-1">💡 Petunjuk — Coba Lagi!</p>
                 <p id="clueText" class="text-sm text-gray-300 leading-relaxed"></p>
@@ -151,7 +227,6 @@
                 <p class="text-sm text-emerald-300 font-bold mb-1">📖 Penjelasan</p>
                 <p id="explanationText" class="text-sm text-gray-300 leading-relaxed"></p>
             </div>
-
             <div class="flex justify-between items-center">
                 <button id="closeQuizBtn" type="button" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-6 rounded-lg">Tutup</button>
                 <button id="nextSlideBtn" type="button" class="hidden bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-2 px-6 rounded-lg transition duration-200">Slide Berikutnya ➜</button>
@@ -161,18 +236,19 @@
 
     <!-- Modal Fun Fact -->
     <div id="funFactModal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 hidden">
-        <div class="pop-in bg-gray-800 border-2 border-emerald-400 p-8 rounded-xl shadow-2xl w-11/12 md:w-2/3 lg:w-1/2 max-h-[90vh] overflow-y-auto text-center">
+        <div class="bg-gray-800 border-2 border-emerald-400 p-8 rounded-xl shadow-2xl w-11/12 md:w-2/3 lg:w-1/2 max-h-[90vh] overflow-y-auto text-center">
             <div class="text-5xl mb-3">🎉</div>
             <h2 class="text-3xl font-extrabold text-emerald-400 mb-1">Benar!</h2>
             <p class="text-xs text-gray-500 uppercase tracking-widest font-bold mb-6">💡 Trivia / Fun Fact</p>
             <p id="funFactText" class="text-lg leading-relaxed text-gray-200 mb-8"></p>
-            <button id="funFactContinueBtn" class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 px-8 rounded-lg transition duration-200">
-                Lanjutkan ➜
-            </button>
+            <button id="funFactContinueBtn" class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 px-8 rounded-lg transition duration-200">Lanjutkan ➜</button>
         </div>
     </div>
 
+    <!-- [DIUBAH] +2 script: tutor-data.js (data) dan tutor.js (mesin) -->
     <script src="js/quiz-data.js" onerror="alert('GAGAL: js/quiz-data.js tidak ditemukan!')"></script>
+    <script src="js/tutor-data.js" onerror="alert('GAGAL: js/tutor-data.js tidak ditemukan!')"></script>
     <script src="js/app.js" onerror="alert('GAGAL: js/app.js tidak ditemukan!')"></script>
+    <script src="js/tutor.js" onerror="alert('GAGAL: js/tutor.js tidak ditemukan!')"></script>
 </body>
 </html>
